@@ -1,12 +1,40 @@
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
-import { markets, getMarketBySlug } from "@/app/data/markets"
+import { supabase } from "@/lib/supabase"
+
+// ---------------------------------------------------------------------------
+// Map a raw Supabase row to the shape the page template expects
+// ---------------------------------------------------------------------------
+function rowToMarket(row: Record<string, unknown>) {
+  const splitCsv = (val: unknown) =>
+    typeof val === "string" && val.trim()
+      ? val.split(",").map((s) => s.trim()).filter(Boolean)
+      : undefined
+
+  return {
+    name: row.name as string,
+    slug: row.slug as string,
+    address: row.address as string,
+    city: row.city as string,
+    latitude: row.latitude as number,
+    longitude: row.longitude as number,
+    daysOpen: (row.days_open as string | null) ?? undefined,
+    hours: (row.hours as string | null) ?? undefined,
+    categories: splitCsv(row.categories),
+    description: (row.description as string | null) ?? undefined,
+    amenities: splitCsv(row.amenities),
+    phone: (row.phone as string | null) ?? undefined,
+    website: (row.website as string | null) ?? undefined,
+    facebook: (row.facebook as string | null) ?? undefined,
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Static generation — tells Next.js which slugs to pre-render at build time
 // ---------------------------------------------------------------------------
-export function generateStaticParams() {
-  return markets.map((market) => ({ slug: market.slug }))
+export async function generateStaticParams() {
+  const { data } = await supabase.from("markets").select("slug")
+  return (data ?? []).map((row) => ({ slug: row.slug as string }))
 }
 
 // ---------------------------------------------------------------------------
@@ -18,17 +46,21 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const market = getMarketBySlug(slug)
+  const { data } = await supabase
+    .from("markets")
+    .select("name, city, address, days_open, description")
+    .eq("slug", slug)
+    .single()
 
-  if (!market) {
+  if (!data) {
     return { title: "Market Not Found" }
   }
 
   return {
-    title: `${market.name} — Flea Market in ${market.city}, TX`,
+    title: `${data.name} — Flea Market in ${data.city}, TX`,
     description:
-      market.description ??
-      `Visit ${market.name} at ${market.address}. Open ${market.daysOpen ?? "weekends"}.`,
+      (data.description as string | null) ??
+      `Visit ${data.name} at ${data.address}. Open ${(data.days_open as string | null) ?? "weekends"}.`,
   }
 }
 
@@ -41,10 +73,18 @@ export default async function MarketPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const market = getMarketBySlug(slug)
+  const { data } = await supabase
+    .from("markets")
+    .select(
+      "name, slug, address, city, latitude, longitude, days_open, hours, categories, description, amenities, phone, website, facebook"
+    )
+    .eq("slug", slug)
+    .single()
 
   // Show Next.js 404 page if the slug doesn't match any market
-  if (!market) notFound()
+  if (!data) notFound()
+
+  const market = rowToMarket(data)
 
   // JSON-LD structured data (schema.org/LocalBusiness) for SEO
   const jsonLd = {
