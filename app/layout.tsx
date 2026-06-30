@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   title: "DFW Flea Market Directory",
   description:
     "Find flea markets, swap meets, and outdoor markets across the Dallas–Fort Worth area.",
+  verification: {
+    google: "e6DcFsPKFNAuzWeAIJIjBr118-QbF9vuNORf9vGdi9U",
+  },
 }
 
 export default function RootLayout({
