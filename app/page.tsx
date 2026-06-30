@@ -9,8 +9,32 @@ export default async function Home() {
 
   const count = (markets ?? []).length
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        name: "DFW Flea Markets",
+        url: "https://dfwfleamarkets.com",
+      },
+      {
+        "@type": "Organization",
+        name: "DFW Flea Markets",
+        url: "https://dfwfleamarkets.com",
+        description:
+          "A directory of flea markets in the Dallas-Fort Worth area.",
+      },
+    ],
+  }
+
   return (
     <main className="max-w-5xl mx-auto px-4 py-10 space-y-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
       <header className="space-y-2">
         <h1 className="text-4xl font-bold text-stone-900 tracking-tight">
           DFW Flea Market Directory
